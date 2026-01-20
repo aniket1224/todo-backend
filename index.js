@@ -3,6 +3,7 @@ const cors = require('cors');
 require('dotenv').config();
 
 const connectDB = require('./db');
+const { ObjectId } = require('mongodb');
 
 const app = express();
 app.use(cors());
@@ -34,7 +35,7 @@ app.post('/tasks', async (req, res) => {
 app.delete('/tasks/:id', async (req, res) => {
   const db = await connectDB();
   await db.collection('tasks').deleteOne({
-    _id: new require('mongodb').ObjectId(req.params.id)
+    _id: new ObjectId(req.params.id)
   });
   res.status(204).send();
 });
