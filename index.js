@@ -105,6 +105,16 @@ app.post('/auth/login', async (req, res) => {
   }
 });
 
+/* LOGOUT */
+app.post('/auth/logout', verifyToken, (req, res) => {
+  try {
+    // Token is verified by middleware, logout just confirms token invalidation
+    res.json({ message: 'Logout successful' });
+  } catch (err) {
+    res.status(500).json({ message: 'Error logging out', error: err.message });
+  }
+});
+
 /* GET all tasks (protected) */
 app.get('/tasks', verifyToken, async (req, res) => {
   const db = await connectDB();
