@@ -118,29 +118,89 @@ app.post('/auth/logout', verifyToken, (req, res) => {
 /* GET all tasks (protected) */
 app.get('/tasks', verifyToken, async (req, res) => {
   const db = await connectDB();
-  const tasks = await db.collection('tasks').find({ userId: new ObjectId(req.userId) }).toArray();
+
+  const tasks = await db.collection('tasks')
+    .find({ userId: req.userId })
+    .toArray();
+
   res.json(tasks);
 });
 
 /* POST new task (protected) */
+/* POST new task (protected) */
 app.post('/tasks', verifyToken, async (req, res) => {
   const db = await connectDB();
-  const result = await db.collection('tasks').insertOne({
-    userId: new ObjectId(req.userId),
+
+  const task = {
+    userId: req.userId,
     name: req.body.name,
-    createdAt: new Date()
+    completed: false,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  };
+
+  const result = await db.collection('tasks').insertOne(task);
+
+  res.status(201).json({
+    _id: result.insertedId,
+    ...task
   });
-  res.status(201).json(result);
 });
 
 /* DELETE task (protected) */
 app.delete('/tasks/:id', verifyToken, async (req, res) => {
   const db = await connectDB();
   await db.collection('tasks').deleteOne({
-    _id: new ObjectId(req.params.id),
-    userId: new ObjectId(req.userId)
-  });
+  _id: new ObjectId(req.params.id),
+  userId: req.userId
+});
   res.status(204).send();
+});
+
+/* UPDATE task (protected) */
+app.put('/tasks/:id', verifyToken, async (req, res) => {
+  try {
+    const db = await connectDB();
+
+    if (!ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid task id' });
+    }
+
+    const { name, completed } = req.body;
+
+    const result = await db.collection('tasks').findOneAndUpdate(
+      {
+        _id: new ObjectId(req.params.id),
+        userId: req.userId
+      },
+      {
+        $set: {
+          name,
+          completed,
+          updatedAt: new Date()
+        }
+      },
+      {
+        returnDocument: 'after'
+      }
+    );
+
+    if (!result) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    res.json({
+      _id: result._id.toString(),
+      name: result.name,
+      completed: result.completed,
+      userId: result.userId,
+      createdAt: result.createdAt,
+      updatedAt: result.updatedAt
+    });
+
+  } catch (err) {
+    res.status(500).json({ message: 'Error updating task', error: err.message });
+  }
 });
 
 const PORT = process.env.PORT || 3000;
